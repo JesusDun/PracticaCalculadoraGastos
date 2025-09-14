@@ -1,0 +1,9 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.card-header h4 {
+    margin-bottom: 0;
+}
+.btn-eliminar {
+    line-height: 1;
+}
