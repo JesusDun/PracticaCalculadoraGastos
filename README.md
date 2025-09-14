@@ -6,7 +6,7 @@ Pagina de la DB: https://awos2024.free.nf/dbm/?server=185.232.14.52
 
 Credenciales ...
 
-Servidor: 182.232.14.52
+Servidor: 185.232.14.52
 
 Base de Datos: u760464709_23005283_bd
 
