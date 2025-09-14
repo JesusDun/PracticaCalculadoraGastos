@@ -2,7 +2,7 @@
 
 Página:
 
-Pagina de la DB: https://awos2024.free.nf/dbm
+Pagina de la DB: https://awos2024.free.nf/dbm/?server=185.232.14.52
 
 Credenciales ...
 
