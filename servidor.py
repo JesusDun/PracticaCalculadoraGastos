@@ -16,10 +16,13 @@ pusher_client = pusher.Pusher(
   ssl=True
 )
 
-# --- "Base de Datos" en Memoria ---
-usuarios_db = {"admin": "12345"}
-gastos_db = []
-gasto_id_counter = 1
+# --- Configuración de la base de datos ---
+db_config = {
+    "host": "185.232.14.52",
+    "database": "u760464709_23005283_bd",
+    "user": "u760464709_23005283_usr",
+    "password": "rnUxcf3P#a"
+}
 
 # --- Función para notificar a los clientes ---
 def notificar_actualizacion_gastos():
