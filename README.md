@@ -1,4 +1,4 @@
-# PracticaCalculadoraGastos
+# Practica Calculadora Gastos
 
 Página:
 
