@@ -1,11 +1,10 @@
 # Archivo: servidor.py
-from flask import Flask, jsonify, request, make_response
+from flask import Flask, render_template, request, jsonify, make_response
 from flask_cors import CORS
 import pusher
-import time
 
 # --- Configuración de la Aplicación ---
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
 # --- Configuración de Pusher ---
@@ -17,75 +16,79 @@ pusher_client = pusher.Pusher(
   ssl=True
 )
 
-# --- "Base de Datos" en Memoria (sin base de datos real) ---
-# Guardaremos los usuarios y los gastos aquí mientras el servidor esté activo.
-usuarios_db = {
-    "admin": "12345"
-}
+# --- "Base de Datos" en Memoria ---
+usuarios_db = {"admin": "12345"}
 gastos_db = []
-gasto_id_counter = 1 # Para generar IDs únicos para cada gasto
+gasto_id_counter = 1
 
-# --- Rutas de la API ---
+# --- Función para notificar a los clientes ---
+def notificar_actualizacion_gastos():
+    pusher_client.trigger('canal-gastos', 'evento-actualizacion', {'message': 'actualizar'})
 
-# 1. RUTA DE INICIO DE SESIÓN
+# =========================================================================
+# RUTAS PARA SERVIR LAS PÁGINAS HTML
+# =========================================================================
+
+@app.route("/")
+def login():
+    return render_template("login.html")
+
+@app.route("/calculadora")
+def calculadora():
+    return render_template("calculadora.html")
+
+# =========================================================================
+# API PARA LA LÓGICA DE LA APLICACIÓN
+# =========================================================================
+
 @app.route("/iniciarSesion", methods=["POST"])
 def iniciarSesion():
-    data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
+    usuario = request.form.get("txtUsuario")
+    password = request.form.get("txtContrasena")
 
-    if username in usuarios_db and usuarios_db[username] == password:
-        # Login exitoso
-        return make_response(jsonify({"message": "Login exitoso"}), 200)
+    if usuario in usuarios_db and usuarios_db[usuario] == password:
+        return make_response(jsonify({"status": "success"}), 200)
     else:
-        # Login fallido
         return make_response(jsonify({"error": "Usuario o contraseña incorrectos"}), 401)
 
-# 2. RUTA PARA OBTENER TODOS LOS GASTOS
-@app.route("/gastos", methods=["GET"])
-def obtener_gastos():
-    # Devolvemos la lista de gastos ordenada del más nuevo al más viejo
-    return jsonify(sorted(gastos_db, key=lambda x: x['id'], reverse=True))
+# --- RUTA PARA DEVOLVER LOS GASTOS A LA TABLA (HTML) ---
+@app.route("/tbodyGastos")
+def tbodyGastos():
+    # Ordenamos los gastos del más nuevo al más viejo
+    gastos_ordenados = sorted(gastos_db, key=lambda x: x['id'], reverse=True)
+    return render_template("tbodyGastos.html", gastos=gastos_ordenados)
 
-# 3. RUTA PARA AGREGAR UN GASTO
-@app.route("/gastos", methods=["POST"])
+# --- RUTA PARA DEVOLVER LOS GASTOS A LOS GRÁFICOS (JSON) ---
+@app.route("/gastos/json")
+def gastos_json():
+    return jsonify(gastos_db)
+
+# --- RUTA PARA AGREGAR UN GASTO ---
+@app.route("/gasto", methods=["POST"])
 def agregar_gasto():
     global gasto_id_counter
-    nuevo_gasto = request.get_json()
-
-    # Creamos el objeto de gasto completo en el servidor
-    gasto_servidor = {
+    nuevo_gasto = {
         "id": gasto_id_counter,
-        "description": nuevo_gasto.get("description"),
-        "amount": float(nuevo_gasto.get("amount")),
-        "category": nuevo_gasto.get("category"),
-        "date": nuevo_gasto.get("date")
+        "description": request.form.get("description"),
+        "amount": float(request.form.get("amount")),
+        "category": request.form.get("category"),
+        "date": request.form.get("date")
     }
-    
-    gastos_db.append(gasto_servidor)
+    gastos_db.append(nuevo_gasto)
     gasto_id_counter += 1
     
-    # Notificamos a todos los clientes a través de Pusher
-    pusher_client.trigger('canal-gastos', 'evento-gastos', {'message': 'actualizar'})
-    
-    return make_response(jsonify(gasto_servidor), 201)
+    notificar_actualizacion_gastos()
+    return make_response(jsonify({"status": "success"}), 201)
 
-# 4. RUTA PARA ELIMINAR UN GASTO
-@app.route("/gastos/<int:id>", methods=["DELETE"])
-def eliminar_gasto(id):
+# --- RUTA PARA ELIMINAR UN GASTO ---
+@app.route("/gasto/eliminar", methods=["POST"])
+def eliminar_gasto():
     global gastos_db
-    # Filtramos la lista para quitar el gasto con el ID correspondiente
-    gasto_encontrado = any(gasto['id'] == id for gasto in gastos_db)
+    id_a_eliminar = int(request.form.get("id"))
+    gastos_db = [gasto for gasto in gastos_db if gasto['id'] != id_a_eliminar]
     
-    if not gasto_encontrado:
-        return make_response(jsonify({"error": "Gasto no encontrado"}), 404)
-        
-    gastos_db = [gasto for gasto in gastos_db if gasto['id'] != id]
-    
-    # Notificamos a todos los clientes a través de Pusher
-    pusher_client.trigger('canal-gastos', 'evento-gastos', {'message': 'actualizar'})
-    
-    return make_response(jsonify({"message": "Gasto eliminado"}), 200)
+    notificar_actualizacion_gastos()
+    return make_response(jsonify({"status": "success"}), 200)
 
 # --- Ejecutar el Servidor ---
 if __name__ == "__main__":
