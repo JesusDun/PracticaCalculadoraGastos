@@ -135,7 +135,7 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
     });
 
     // --- Lógica de Pusher ---
-    const pusher = new Pusher('TU_APP_KEY', { cluster: 'us2' }); // RECUERDA Reemplazar con tu KEY
+    const pusher = new Pusher('b338714caa5dd2af623d', { cluster: 'us2' }); // RECUERDA Reemplazar con tu KEY
     const channel = pusher.subscribe('canal-gastos');
     channel.bind('evento-actualizacion', function(data) {
         console.log("¡Actualización recibida de Pusher!", data.message);
