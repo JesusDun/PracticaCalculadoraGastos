@@ -20,15 +20,10 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
     let graficoPieInstance;
     let graficoBarrasInstance;
 
-    // Objeto para mapear categorías a colores - ¡NUEVOS COLORES MÁS ATRACTIVOS!
+    // Objeto para mapear categorías a colores
     const categoryColors = {
-        comida: '#FF9999',         // Un rojo suave y cálido
-        transporte: '#66B3FF',     // Un azul cielo vibrante
-        entretenimiento: '#FFD700', // Un dorado alegre
-        salud: '#99FF99',          // Un verde claro y fresco
-        servicios: '#FFCC66',      // Un naranja suave
-        compras: '#CC99FF',        // Un morado pastel
-        otros: '#A0D8B3'           // Un verde menta
+        comida: '#FF6B6B', transporte: '#4ECDC4', entretenimiento: '#45B7D1',
+        salud: '#96CEB4', servicios: '#FFEAA7', compras: '#DDA0DD', otros: '#98D8C8'
     };
 
     function buscarYActualizarTodo() {
@@ -69,39 +64,26 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
         for (const categoria in gastosPorCategoria) {
             pieData.labels.push(categoria.charAt(0).toUpperCase() + categoria.slice(1));
             pieData.values.push(gastosPorCategoria[categoria]);
-            // Usa los nuevos colores definidos
             pieData.colors.push(categoryColors[categoria] || '#CCCCCC');
         }
 
         // --- Datos para Gráfico de Barras (últimos 7 días) ---
         const barData = { labels: [], values: [] };
         const gastosPorDia = {};
-        
+
         gastos.forEach(gasto => {
-            // Asegúrate de que la fecha sea válida para agrupar
-            const expenseDate = new Date(gasto.date + 'T00:00:00'); // Añadir T00:00:00 para evitar problemas de zona horaria
-            if (!isNaN(expenseDate)) { // Validar que la fecha sea parseable
-                const dateString = expenseDate.toISOString().split('T')[0]; // Formato YYYY-MM-DD
-                if (!gastosPorDia[dateString]) {
-                    gastosPorDia[dateString] = 0;
-                }
-                gastosPorDia[dateString] += gasto.amount;
+            if (!gastosPorDia[gasto.date]) {
+                gastosPorDia[gasto.date] = 0;
             }
+            gastosPorDia[gasto.date] += gasto.amount;
         });
 
-        // Generar las últimas 7 fechas para mostrar incluso si no hay gastos en ellas
-        const last7Days = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            last7Days.push(d.toISOString().split('T')[0]);
-        }
-
-        last7Days.forEach(date => {
+        const sortedDates = Object.keys(gastosPorDia).sort().slice(-7);
+        sortedDates.forEach(date => {
             barData.labels.push(new Date(date + 'T00:00:00').toLocaleDateString('es-ES', { month: 'short', day: 'numeric' }));
-            barData.values.push(gastosPorDia[date] || 0); // Si no hay gastos, muestra 0
+            barData.values.push(gastosPorDia[date]);
         });
-        
+
         // --- Dibujar Gráficos ---
         dibujarGraficoPie(pieData);
         dibujarGraficoBarras(barData);
@@ -126,11 +108,7 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
             type: 'bar',
             data: {
                 labels: data.labels,
-                datasets: [{ 
-                    label: 'Total Gastado', 
-                    data: data.values, 
-                    backgroundColor: '#8E44AD' // Un morado intenso y elegante para las barras
-                }]
+                datasets: [{ label: 'Total Gastado', data: data.values, backgroundColor: '#4F46E5' }]
             },
             options: { scales: { y: { beginAtZero: true } } }
         });
@@ -157,7 +135,7 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
     });
 
     // --- Lógica de Pusher ---
-    const pusher = new Pusher('b338714caa5dd2af623d', { cluster: 'us2' });
+    const pusher = new Pusher('b338714caa5dd2af623d', { cluster: 'us2' }); // RECUERDA Reemplazar con tu KEY
     const channel = pusher.subscribe('canal-gastos');
     channel.bind('evento-actualizacion', function(data) {
         console.log("¡Actualización recibida de Pusher!", data.message);
