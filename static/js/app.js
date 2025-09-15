@@ -97,6 +97,11 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
             data: {
                 labels: data.labels,
                 datasets: [{ data: data.values, backgroundColor: data.colors }]
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
             }
         });
     }
@@ -110,7 +115,11 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
                 labels: data.labels,
                 datasets: [{ label: 'Total Gastado', data: data.values, backgroundColor: '#4F46E5' }]
             },
-            options: { scales: { y: { beginAtZero: true } } }
+            options: {
+                scales: { y: { beginAtZero: true } },
+                responsive: true,
+                maintainAspectRatio: false
+            }
         });
     }
 
