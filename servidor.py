@@ -5,6 +5,7 @@ import pusher
 import mysql.connector
 from decimal import Decimal
 from datetime import date
+from datetime import datetime
 
 # --- Configuración de la Aplicación ---
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -40,17 +41,40 @@ def notificar_actualizacion_gastos():
 def login():
     return render_template("login.html")
 
-# NUEVA RUTA: Para mostrar la página de registro
 @app.route("/registro")
 def registro():
     return render_template("registro.html")
 
 @app.route("/calculadora")
 def calculadora():
-    # MODIFICADO: Protegemos la ruta. Si no hay sesión, se redirige al login.
+    # Protegemos la ruta. Si no hay sesión, se redirige al login.
     if 'idUsuario' not in session:
         return redirect(url_for('login'))
-    return render_template("calculadora.html")
+
+    # --- LÓGICA DEL SALUDO DINÁMICO ---
+    try:
+        id_usuario_actual = session['idUsuario']
+        con = mysql.connector.connect(**db_config)
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("SELECT username FROM usuarios WHERE idUsuario = %s", (id_usuario_actual,))
+        usuario = cursor.fetchone()
+        username = usuario['username'].capitalize() if usuario else "Usuario"
+
+        hora_actual = datetime.now().hour
+        saludo = "Buenas Noches"
+        if 5 <= hora_actual < 12:
+            saludo = "Buenos Días"
+        elif 12 <= hora_actual < 20:
+            saludo = "Buenas Tardes"
+
+        return render_template("calculadora.html", saludo=saludo, username=username)
+
+    except mysql.connector.Error as err:
+        return render_template("calculadora.html", saludo="Bienvenido", username="Usuario")
+    finally:
+        if 'con' in locals() and con.is_connected():
+            cursor.close()
+            con.close()
 
 # =========================================================================
 # API PARA LA LÓGICA DE LA APLICACIÓN
