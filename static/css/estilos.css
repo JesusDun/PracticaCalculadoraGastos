@@ -7,3 +7,9 @@ body {
 .btn-eliminar {
     line-height: 1;
 }
+
+.chart-container {
+  position: relative;
+  height: 300px; /* Puedes ajustar esta altura a tu gusto (ej. 250px, 350px) */
+  width: 100%;
+}
