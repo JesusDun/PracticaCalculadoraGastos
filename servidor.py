@@ -58,7 +58,7 @@ def calculadora():
         cursor = con.cursor(dictionary=True)
         cursor.execute("SELECT username FROM usuarios WHERE idUsuario = %s", (id_usuario_actual,))
         usuario = cursor.fetchone()
-        username = usuario['username'].capitalize() if usuario else "Usuario"
+        username = usuario['username'] if usuario else "Usuario"
 
         hora_actual = datetime.now().hour
         saludo = "Buenas Noches"
