@@ -143,6 +143,13 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
         }
     });
 
+    // Clic en botón de cerrar sesión
+    $(document).on("click", "#btnCerrarSesion", function() {
+        if (confirm("¿Estás seguro de que quieres cerrar sesión?")) {
+            window.location.href = '/'; // Redirige a la página de login
+        }
+    });
+
     // --- Lógica de Pusher ---
     const pusher = new Pusher('b338714caa5dd2af623d', { cluster: 'us2' }); // RECUERDA Reemplazar con tu KEY
     const channel = pusher.subscribe('canal-gastos');
