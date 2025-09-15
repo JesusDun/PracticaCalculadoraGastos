@@ -29,19 +29,32 @@
                     <div class="card-header"><h4>Agregar Nuevo Gasto</h4></div>
                     <div class="card-body">
                         <form id="frmGasto">
-                            <input type="text" name="description" class="form-control mb-2" placeholder="Descripción" required>
-                            <input type="number" name="amount" class="form-control mb-2" placeholder="Monto" step="0.01" required>
-                            <select name="category" class="form-select mb-2" placeholder="Selecciona la Categoría" required>
-                                <option value="comida">🍽️ Comida</option>
-                                <option value="transporte">🚗 Transporte</option>
-                                <option value="entretenimiento">🎮 Entretenimiento</option>
-                                <option value="salud">🏥 Salud</option>
-                                <option value="servicios">💡 Servicios</option>
-                                <option value="compras">🛍️ Compras</option>
-                                <option value="otros">📦 Otros</option>
-                            </select>
-                            <input type="date" name="date" class="form-control mb-2" placeholder="Fecha" required>
-                            <button type="submit" class="btn btn-primary w-100">Agregar</button>
+                            <div class="mb-2">
+                                <label for="gastoDescription" class="form-label">Descripción</label>
+                                <input type="text" id="gastoDescription" name="description" class="form-control" placeholder="Ej: Café de la mañana" required>
+                            </div>
+                            <div class="mb-2">
+                                <label for="gastoAmount" class="form-label">Monto</label>
+                                <input type="number" id="gastoAmount" name="amount" class="form-control" placeholder="Ej: 45.50" step="0.01" required>
+                            </div>
+                            <div class="mb-2">
+                                <label for="gastoCategory" class="form-label">Categoría</label>
+                                <select id="gastoCategory" name="category" class="form-select" required>
+                                    <option value="" disabled selected>-- Selecciona una categoría --</option>
+                                    <option value="comida">🍽️ Comida</option>
+                                    <option value="transporte">🚗 Transporte</option>
+                                    <option value="entretenimiento">🎮 Entretenimiento</option>
+                                    <option value="salud">🏥 Salud</option>
+                                    <option value="servicios">💡 Servicios</option>
+                                    <option value="compras">🛍️ Compras</option>
+                                    <option value="otros">📦 Otros</option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label for="gastoDate" class="form-label">Fecha</label>
+                                <input type="date" id="gastoDate" name="date" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 mt-3">Agregar</button>
                         </form>
                     </div>
                 </div>
