@@ -38,13 +38,44 @@ def notificar_actualizacion_gastos():
 def login():
     return render_template("login.html")
 
+@app.route("/registro")
+def registro():
+    return render_template("registro.html")
+    
 @app.route("/calculadora")
 def calculadora():
+    if 'idUsuario' not in session:
+        return redirect(url_for('login'))
     return render_template("calculadora.html")
 
-# =========================================================================
-# API PARA LA LÓGICA DE LA APLICACIÓN (CONECTADA A MYSQL)
-# =========================================================================
+# ======================================================================
+# API PARA LA LÓGICA DE LA APLICACIÓN 
+# ======================================================================
+
+@app.route("/registrarUsuario", methods=["POST"])
+def registrarUsuario():
+    try:
+        usuario = request.form.get("txtUsuario")
+        password = request.form.get("txtContrasena")
+        con = mysql.connector.connect(**db_config)
+        cursor = con.cursor()
+
+        # Primero, verificamos si el usuario ya existe
+        cursor.execute("SELECT idUsuario FROM usuarios WHERE username = %s", (usuario,))
+        if cursor.fetchone():
+            return make_response(jsonify({"error": "El nombre de usuario ya está en uso."}), 409)
+
+        # Si no existe, lo insertamos
+        sql = "INSERT INTO usuarios (username, password) VALUES (%s, %s)"
+        cursor.execute(sql, (usuario, password))
+        con.commit()
+        return make_response(jsonify({"status": "Usuario registrado exitosamente"}), 201)
+    except mysql.connector.Error as err:
+        return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
+    finally:
+        if 'con' in locals() and con.is_connected():
+            cursor.close()
+            con.close()
 
 @app.route("/iniciarSesion", methods=["POST"])
 def iniciarSesion():
@@ -52,10 +83,14 @@ def iniciarSesion():
         usuario = request.form.get("txtUsuario")
         password = request.form.get("txtContrasena")
         con = mysql.connector.connect(**db_config)
-        cursor = con.cursor()
-        sql = "SELECT * FROM usuarios WHERE username = %s AND password = %s"
+        cursor = con.cursor(dictionary=True) # dictionary=True para obtener el ID
+        sql = "SELECT idUsuario, username FROM usuarios WHERE username = %s AND password = %s"
         cursor.execute(sql, (usuario, password))
-        if cursor.fetchone():
+        user_data = cursor.fetchone()
+        
+        if user_data:
+            # MODIFICADO: Guardamos el ID del usuario en la sesión
+            session['idUsuario'] = user_data['idUsuario']
             return make_response(jsonify({"status": "success"}), 200)
         else:
             return make_response(jsonify({"error": "Usuario o contraseña incorrectos"}), 401)
@@ -65,6 +100,12 @@ def iniciarSesion():
         if 'con' in locals() and con.is_connected():
             cursor.close()
             con.close()
+
+# NUEVA RUTA: Para cerrar la sesión
+@app.route("/cerrarSesion", methods=["POST"])
+def cerrarSesion():
+    session.clear() # Limpia todos los datos de la sesión
+    return make_response(jsonify({"status": "Sesión cerrada"}), 200)
 
 @app.route("/tbodyGastos")
 def tbodyGastos():
