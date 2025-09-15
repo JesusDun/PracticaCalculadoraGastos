@@ -15,6 +15,21 @@ app.controller("loginCtrl", function ($scope, $http) {
     });
 });
 
+// --- Contraldor para el Registro ---
+app.controller("registroCtrl", function ($scope, $http) {
+    $("#frmRegistro").on("submit", function(event) {
+        event.preventDefault();
+        $.post("/registrarUsuario", $(this).serialize())
+            .done(function(response) {
+                alert(response.status);
+                window.location.href = '/'; // Redirige al login
+            })
+            .fail(function(response) {
+                alert(response.responseJSON.error || "Error en el registro.");
+            });
+    });
+});
+
 // --- Controlador para la Calculadora ---
 app.controller("calculadoraCtrl", function ($scope, $http) {
     let graficoPieInstance;
@@ -146,7 +161,9 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
     // Clic en botón de cerrar sesión
     $(document).on("click", "#btnCerrarSesion", function() {
         if (confirm("¿Estás seguro de que quieres cerrar sesión?")) {
-            window.location.href = '/'; // Redirige a la página de login
+            $.post("/cerrarSesion").done(function() {
+                window.location.href = '/'; // Redirige al login DESPUÉS de cerrar sesión en el servidor
+            });
         }
     });
 
