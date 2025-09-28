@@ -1,15 +1,41 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* --- Fondo de Van Gogh --- */
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    position: relative;
+    color: #333; /* Color de texto por defecto */
 }
+
+/* --- Capa oscura para mejorar legibilidad --- */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Overlay negro con 50% de opacidad */
+    z-index: -1;
+}
+
+/* --- Ajustes para que las tarjetas se vean bien sobre el fondo --- */
+.card {
+    background-color: rgba(255, 255, 255, 0.9); /* Fondo de tarjeta semi-transparente */
+}
+
 .card-header h4 {
     margin-bottom: 0;
 }
+
 .btn-eliminar {
     line-height: 1;
 }
 
 .chart-container {
   position: relative;
-  height: 300px; /* Puedes ajustar esta altura a tu gusto (ej. 250px, 350px) */
+  height: 300px;
   width: 100%;
 }
