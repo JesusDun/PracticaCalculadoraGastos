@@ -61,11 +61,13 @@ def calculadora():
         username = usuario['username'] if usuario else "Usuario"
 
         hora_actual = datetime.now().hour
-        saludo = "Buenas Noches"
+        
         if 5 <= hora_actual < 12:
             saludo = "Buenos Días"
-        elif 12 <= hora_actual < 20:
+        elif 12 <= hora_actual < 20: # De 12 PM a 7:59 PM
             saludo = "Buenas Tardes"
+        else: # Para el resto de las horas (noche y madrugada)
+            saludo = "Buenas Noches"
 
         return render_template("calculadora.html", saludo=saludo, username=username)
 
