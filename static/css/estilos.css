@@ -6,7 +6,8 @@ body {
     background-position: center center;
     background-attachment: fixed;
     position: relative;
-    color: #333; /* Color de texto por defecto */
+    /* --- CAMBIO: Color de texto principal a blanco --- */
+    color: #ffffff; 
 }
 
 /* --- Capa oscura para mejorar legibilidad --- */
@@ -17,13 +18,15 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Overlay negro con 50% de opacidad */
+    background-color: rgba(0, 0, 0, 0.6); /* Aumentamos un poco la opacidad */
     z-index: -1;
 }
 
 /* --- Ajustes para que las tarjetas se vean bien sobre el fondo --- */
 .card {
     background-color: rgba(255, 255, 255, 0.9); /* Fondo de tarjeta semi-transparente */
+    /* --- CAMBIO: Color de texto dentro de las tarjetas a oscuro --- */
+    color: #333;
 }
 
 .card-header h4 {
@@ -38,4 +41,14 @@ body::before {
   position: relative;
   height: 300px;
   width: 100%;
+}
+
+/* --- NUEVO: Estilos para enlaces y textos importantes --- */
+a, a:hover {
+    color: #87CEFA; /* Un azul claro que resalta bien */
+    text-decoration: none;
+}
+
+.text-muted {
+    color: #f8f9fa !important; /* Hacemos el texto "muted" más brillante */
 }
