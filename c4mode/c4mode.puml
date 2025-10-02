@@ -1,0 +1,42 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+!define FONTAWESOME6 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/font-awesome-6
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/devicons
+!define DEVICONS2 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/devicons2
+
+!include FONTAWESOME6/users.puml
+!include FONTAWESOME6/calculator.puml
+!include DEVICONS/html5.puml
+!include DEVICONS/python.puml
+!include DEVICONS/mysql.puml
+!include DEVICONS2/flask_original.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(user, "Usuario", "Visualiza y administra sus gastos personales.", $sprite="users")
+
+Enterprise_Boundary(c1, "Contexto del Sistema") {
+    System(app, "Calculadora de Gastos", "Aplicación web para el seguimiento de gastos personales en tiempo real.", $sprite="calculator")
+    System(pusher, "Pusher", "API para notificaciones en tiempo real.")
+
+    System_Boundary(c2, "Contenedores") {
+        Container(app_web, "Aplicación Web", "HTML5, CSS, AngularJS", "Interfaz de usuario para la gestión de gastos.", $sprite="html5")
+        Container(api, "API", "Python/Flask", "Provee la lógica de negocio y el acceso a los datos.", $sprite="python")
+        ContainerDb(bd, "Base de Datos", "MySQL", "Almacena los registros de usuarios y gastos.", $sprite="mysql")
+
+        Container_Boundary(c3, "Componentes de la API") {
+            Component(servidor_py, "servidor.py", "Flask", "Gestiona las rutas para el CRUD de gastos, autenticación de usuarios y notificaciones en tiempo real.", $sprite="flask_original")
+        }
+    }
+}
+
+Rel(user, app, "Interactúa con", "HTTPS")
+
+Rel(app, app_web, "Sirve la", "HTTPS")
+BiRel_U(app_web, pusher, "Se subscribe a/recibe actualizaciones de", "WSS")
+BiRel(app_web, api, "Realiza peticiones a", "HTTPS/JSON")
+Rel_R(api, bd, "Lee y escribe en", "SQL")
+Rel(api, servidor_py, "Contiene el componente")
+@enduml
