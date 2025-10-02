@@ -7,6 +7,7 @@
 !define DEVICONS2 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/devicons2
 
 !include FONTAWESOME6/users.puml
+!include FONTAWESOME6/calculator.puml
 !include DEVICONS/html5.puml
 !include DEVICONS/python.puml
 !include DEVICONS/mysql.puml
@@ -17,7 +18,7 @@ LAYOUT_WITH_LEGEND()
 Person(user, "Usuario", "Visualiza y administra sus gastos personales.", $sprite="users")
 
 Enterprise_Boundary(c1, "Contexto del Sistema") {
-    System(app, "Calculadora de Gastos", "Aplicación web para el seguimiento de gastos personales en tiempo real.")
+    System(app, "Calculadora de Gastos", "Aplicación web para el seguimiento de gastos personales en tiempo real.", $sprite="calculator")
     System(pusher, "Pusher", "API para notificaciones en tiempo real.")
 
     System_Boundary(c2, "Contenedores") {
