@@ -1,0 +1,44 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+!define FONTAWESOME6 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/font-awesome-6
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/devicons
+!define DEVICONS2 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/devicons2
+
+!include FONTAWESOME6/users.puml
+!include DEVICONS2/arduino.puml
+!include DEVICONS/html5.puml
+!include DEVICONS/python.puml
+!include DEVICONS/mysql.puml
+!include DEVICONS2/flask_original.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(esp32, "Placa ESP32", "Envia Temperatura y Humedad.", $sprite="arduino")
+Person(user, "Usuario", "Visualiza y manipula la Temperatura y Humedad.", $sprite="users")
+
+Enterprise_Boundary(c1, "Contexto") {
+    System(app, "App Temperatura y Humedad", "Aplicación para visualizar y manipular temperatura y humedad en tiempo real.")
+    System(pusher, "Pusher", "API tecnología en tiempo real.")
+
+    System_Boundary(c2, "Contenedores") {
+        Container(app_web, "App Web", "HTML5", "Aplicación Web CRUD de la Temperatura y Humedad.", $sprite="html5")
+        Container(api, "API", "Python", "CRUD de la Temperatura y Humedad.", $sprite="python")
+        ContainerDb(bd, "Base de Datos", "MySQL", "Registros de Temperatura y Humedad", $sprite="mysql")
+
+        Container_Boundary(c3, "Componentes") {
+            Component(temperatura_humedad, "app.py", "Flask", "Rutas/Métodos: guardar, buscar, editar y eliminar. Método: notificarActualizacionTemperaturaHumedad donde se usa Pusher.", $sprite="flask_original")
+        }
+    }
+}
+
+Rel(esp32, app, "", "https")
+Rel(user, app, "", "https")
+
+Rel(app, app_web, "", "https")
+BiRel_U(app_web, pusher, "", "ws")
+BiRel(app_web, api, "", "https")
+Rel_R(api, bd, "", "")
+Rel(api, temperatura_humedad, "")
+@enduml
