@@ -7,7 +7,6 @@
 !define DEVICONS2 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/devicons2
 
 !include FONTAWESOME6/users.puml
-!include DEVICONS2/arduino.puml
 !include DEVICONS/html5.puml
 !include DEVICONS/python.puml
 !include DEVICONS/mysql.puml
@@ -15,30 +14,28 @@
 
 LAYOUT_WITH_LEGEND()
 
-Person(esp32, "Placa ESP32", "Envia Temperatura y Humedad.", $sprite="arduino")
-Person(user, "Usuario", "Visualiza y manipula la Temperatura y Humedad.", $sprite="users")
+Person(user, "Usuario", "Visualiza y administra sus gastos personales.", $sprite="users")
 
-Enterprise_Boundary(c1, "Contexto") {
-    System(app, "App Temperatura y Humedad", "Aplicación para visualizar y manipular temperatura y humedad en tiempo real.")
-    System(pusher, "Pusher", "API tecnología en tiempo real.")
+Enterprise_Boundary(c1, "Contexto del Sistema") {
+    System(app, "Calculadora de Gastos", "Aplicación web para el seguimiento de gastos personales en tiempo real.")
+    System(pusher, "Pusher", "API para notificaciones en tiempo real.")
 
     System_Boundary(c2, "Contenedores") {
-        Container(app_web, "App Web", "HTML5", "Aplicación Web CRUD de la Temperatura y Humedad.", $sprite="html5")
-        Container(api, "API", "Python", "CRUD de la Temperatura y Humedad.", $sprite="python")
-        ContainerDb(bd, "Base de Datos", "MySQL", "Registros de Temperatura y Humedad", $sprite="mysql")
+        Container(app_web, "Aplicación Web", "HTML5, CSS, AngularJS", "Interfaz de usuario para la gestión de gastos.", $sprite="html5")
+        Container(api, "API", "Python/Flask", "Provee la lógica de negocio y el acceso a los datos.", $sprite="python")
+        ContainerDb(bd, "Base de Datos", "MySQL", "Almacena los registros de usuarios y gastos.", $sprite="mysql")
 
-        Container_Boundary(c3, "Componentes") {
-            Component(temperatura_humedad, "app.py", "Flask", "Rutas/Métodos: guardar, buscar, editar y eliminar. Método: notificarActualizacionTemperaturaHumedad donde se usa Pusher.", $sprite="flask_original")
+        Container_Boundary(c3, "Componentes de la API") {
+            Component(servidor_py, "servidor.py", "Flask", "Gestiona las rutas para el CRUD de gastos, autenticación de usuarios y notificaciones en tiempo real.", $sprite="flask_original")
         }
     }
 }
 
-Rel(esp32, app, "", "https")
-Rel(user, app, "", "https")
+Rel(user, app, "Interactúa con", "HTTPS")
 
-Rel(app, app_web, "", "https")
-BiRel_U(app_web, pusher, "", "ws")
-BiRel(app_web, api, "", "https")
-Rel_R(api, bd, "", "")
-Rel(api, temperatura_humedad, "")
+Rel(app, app_web, "Sirve la", "HTTPS")
+BiRel_U(app_web, pusher, "Se subscribe a/recibe actualizaciones de", "WSS")
+BiRel(app_web, api, "Realiza peticiones a", "HTTPS/JSON")
+Rel_R(api, bd, "Lee y escribe en", "SQL")
+Rel(api, servidor_py, "Contiene el componente")
 @enduml
