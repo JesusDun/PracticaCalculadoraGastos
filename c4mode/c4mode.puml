@@ -1,42 +1,86 @@
 @startuml
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
+' --- Definición de las fuentes de los Sprites ---
 !define FONTAWESOME6 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/font-awesome-6
 !define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/devicons
 !define DEVICONS2 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons/devicons2
 
+' --- Inclusión de los Sprites específicos ---
 !include FONTAWESOME6/users.puml
-!include FONTAWESOME6/calculator.puml
-!include DEVICONS/html5.puml
-!include DEVICONS/python.puml
-!include DEVICONS/mysql.puml
+!include DEVICONS2/angularjs.puml
 !include DEVICONS2/flask_original.puml
+!include DEVICONS/mysql.puml
+!include FONTAWESOME6/database.puml
+!include FONTAWESOME6/bolt.puml
+!include FONTAWESOME6/file_code.puml
+!include FONTAWESOME6/lock.puml
+!include FONTAWESOME6/rss.puml
+!include FONTAWESOME6/paper_plane.puml
 
 LAYOUT_WITH_LEGEND()
 
+' --- Título del Diagrama ---
+title Diagrama de Componentes C4 - Calculadora de Gastos (Flujo L-R)
+
+' --- DIRECTIVA DE DISEÑO ---
+left to right direction
+
+' --- Actor (Izquierda) ---
 Person(user, "Usuario", "Visualiza y administra sus gastos personales.", $sprite="users")
 
-Enterprise_Boundary(c1, "Contexto del Sistema") {
-    System(app, "Calculadora de Gastos", "Aplicación web para el seguimiento de gastos personales en tiempo real.", $sprite="calculator")
-    System(pusher, "Pusher", "API para notificaciones en tiempo real.")
-
-    System_Boundary(c2, "Contenedores") {
-        Container(app_web, "Aplicación Web", "HTML5, CSS, AngularJS", "Interfaz de usuario para la gestión de gastos.", $sprite="html5")
-        Container(api, "API", "Python/Flask", "Provee la lógica de negocio y el acceso a los datos.", $sprite="python")
-        ContainerDb(bd, "Base de Datos", "MySQL", "Almacena los registros de usuarios y gastos.", $sprite="mysql")
-
-        Container_Boundary(c3, "Componentes de la API") {
-            Component(servidor_py, "servidor.py", "Flask", "Gestiona las rutas para el CRUD de gastos, autenticación de usuarios y notificaciones en tiempo real.", $sprite="flask_original")
-        }
-    }
+' --- Contenedor: Aplicación Web (SPA) ---
+Container_Boundary(spa, "Aplicación Web (SPA)") {
+    Component(auth_ctrls, "Controladores (login/registro)", "AngularJS", "Maneja la autenticación de usuario (loginCtrl, registroCtrl).", $sprite="angularjs")
+    Component(calculadora_view, "Vista (calculadora.html)", "HTML/Jinja2", "Formularios, tabla y gráficos de gastos.", $sprite="file_code")
+    Component(calculadora_ctrl, "calculadoraCtrl", "AngularJS", "Lógica de la vista (CRUD Gastos, Gráficos).", $sprite="angularjs")
+    Component(pusher_js, "Pusher JS Client", "JavaScript", "Recibe eventos de 'canal-gastos'.", $sprite="rss")
 }
 
-Rel(user, app, "Interactúa con", "HTTPS")
+' --- Contenedor: API Backend (Flask) ---
+' (Todo esto está contenido en 'servidor.py')
+Container_Boundary(api, "API Backend (Flask)") {
+    Component(session_mgmt, "Flask Session", "Python", "Verifica 'idUsuario' en la sesión para proteger rutas.", $sprite="lock")
+    Component(html_routes, "Rutas de Vistas (HTML)", "Python/Flask", "Sirve los archivos HTML principales: /login, /registro, /calculadora.", $sprite="flask_original")
+    Component(auth_routes, "Rutas de Autenticación", "Python/Flask", "Endpoints: /iniciarSesion, /registrarUsuario, /cerrarSesion.", $sprite="flask_original")
+    Component(gasto_routes, "Rutas de Gastos (CRUD)", "Python/Flask", "Endpoints: /gasto, /gasto/eliminar, /tbodyGastos, /gastos/json.", $sprite="flask_original")
+    Component(pusher_func, "Función (notificar_actualizacion)", "Python", "Envía trigger a Pusher tras un cambio.", $sprite="paper_plane")
+}
 
-Rel(app, app_web, "Sirve la", "HTTPS")
-BiRel_U(app_web, pusher, "Se subscribe a/recibe actualizaciones de", "WSS")
-BiRel(app_web, api, "Realiza peticiones a", "HTTPS/JSON")
-Rel_R(api, bd, "Lee y escribe en", "SQL")
-Rel(api, servidor_py, "Contiene el componente")
+' --- Sistemas Externos (Derecha) ---
+System_Ext(db, "Base de Datos", "MySQL. Almacena usuarios y gastos.", $sprite="mysql")
+System_Ext(pusher, "Pusher", "Servicio externo de WebSockets.", $sprite="bolt")
+
+' --- Relaciones Internas (Agrupadas) ---
+' SPA Internas
+Rel(calculadora_ctrl, calculadora_view, "Rellena tabla y gráficos")
+Rel(pusher_js, calculadora_ctrl, "Dispara recarga de datos")
+
+' API Internas
+Rel(html_routes, session_mgmt, "Usa para proteger /calculadora")
+Rel(auth_routes, session_mgmt, "Usa para crear/limpiar sesión")
+Rel(gasto_routes, session_mgmt, "Usa para verificar usuario")
+Rel(gasto_routes, pusher_func, "Llama después de CUD")
+Rel(gasto_routes, db, "Lee/Escribe en tabla 'gastos'", "SQL")
+Rel(auth_routes, db, "Lee/Escribe en tabla 'usuarios'", "SQL")
+
+' --- Relaciones de Flujo (Usuario -> SPA -> API -> Externos) ---
+
+' Flujo de Carga de Vistas (Servidor-Lado)
+Rel(user, html_routes, "Navega a las páginas", "HTTPS")
+Rel(html_routes, auth_ctrls, "Carga vistas de Login/Registro")
+Rel(html_routes, calculadora_ctrl, "Carga vista de Calculadora")
+
+' Flujo de SPA -> API (AJAX)
+Rel(auth_ctrls, auth_routes, "Llama a API de Auth (iniciarSesion, ...)", "HTTPS/AJAX")
+Rel(calculadora_ctrl, gasto_routes, "Llama a API de Gastos (CRUD)", "HTTPS/AJAX")
+Rel(calculadora_ctrl, auth_routes, "Llama a /cerrarSesion", "HTTPS/AJAX")
+
+' Flujo de API -> Pusher
+Rel(pusher_func, pusher, "Envía evento 'evento-actualizacion'", "API Call")
+
+' Flujo de Pusher -> SPA
+Rel(pusher, pusher_js, "Recibe evento", "WebSocket")
+
 @enduml
