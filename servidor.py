@@ -194,7 +194,7 @@ def tbodyGastos():
             
         cursor = con.cursor(dictionary=True)
         sql = """
-            SELECT idGasto AS id, descripcion AS description, monto AS monto, categoria AS categoria, fecha AS fecha 
+            SELECT idGasto AS id, descripcion AS descripcion, monto AS monto, categoria AS categoria, fecha AS fecha 
             FROM gastos WHERE idUsuario = %s ORDER BY idGasto DESC
         """
         cursor.execute(sql, (id_usuario_actual,))
