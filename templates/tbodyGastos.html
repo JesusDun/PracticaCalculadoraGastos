@@ -1,11 +1,11 @@
 {% for gasto in gastos %}
 <tr>
     <td>
-        {{ gasto.description }}
-        <small class="d-block text-muted">{{ gasto.date }}</small>
+        {{ gasto.descripcion }}
+        <small class="d-block text-muted">{{ gasto.fecha }}</small>
     </td>
-    <td>${{ "%.2f"|format(gasto.amount) }}</td>
-    <td>{{ gasto.category.capitalize() }}</td>
+    <td>${{ "%.2f"|format(gasto.monto) }}</td>
+    <td>{{ gasto.categoria.capitalize() }}</td>
     <td>
         <button class="btn btn-danger btn-sm btn-eliminar" data-id="{{ gasto.id }}">
             &times;
