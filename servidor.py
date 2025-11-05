@@ -58,17 +58,7 @@ def calculadora():
         usuario = cursor.fetchone()
         username = usuario['username'] if usuario else "Usuario"
 
-        # --- LÓGICA DEL SALUDO DINÁMICO ---
-        hora_actual = datetime.now().hour
-        
-        if 5 <= hora_actual < 12:
-            saludo = "Buenos Días"
-        elif 12 <= hora_actual < 20: # De 12 PM a 7:59 PM
-            saludo = "Buenas Tardes"
-        else: # Para el resto de las horas (noche y madrugada)
-            saludo = "Buenas Noches"
-
-        return render_template("calculadora.html", saludo=saludo, username=username)
+        return render_template("calculadora.html", username=username)
 
     except Exception as err:
         print(f"Error en /calculadora: {err}")
