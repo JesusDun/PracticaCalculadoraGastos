@@ -59,13 +59,6 @@ def calculadora():
         username = usuario['username'] if usuario else "Usuario"
 
     # --- LÓGICA DEL SALUDO DINÁMICO ---
-        id_usuario_actual = session['idUsuario']
-        con = mysql.connector.connect(**db_config)
-        cursor = con.cursor(dictionary=True)
-        cursor.execute("SELECT username FROM usuarios WHERE idUsuario = %s", (id_usuario_actual,))
-        usuario = cursor.fetchone()
-        username = usuario['username'] if usuario else "Usuario"
-
         hora_actual = datetime.now().hour
         
         if 5 <= hora_actual < 12:
@@ -78,11 +71,11 @@ def calculadora():
         return render_template("calculadora.html", saludo=saludo, username=username)
 
     except Exception as err:
-        print(f"Error en /calculadora: {err}")
-        return render_template("calculadora.html", saludo="Bienvenido", username="Usuario")
-    finally:
-        if cursor: cursor.close()
-        if con: db_manager.close_connection(con)
+        print(f"Error en /calculadora: {err}")
+        return render_template("calculadora.html", saludo="Bienvenido", username="Usuario")
+    finally:
+        if cursor: cursor.close()
+        if con: db_manager.close_connection(con)
 
 # =========================================================================
 # API PARA LA LÓGICA DE LA APLICACIÓN
