@@ -2,7 +2,7 @@
 from flask import Flask, render_template, request, jsonify, make_response, session, redirect, url_for
 from flask_cors import CORS
 import pusher
-# import mysql.connector   # <--- 1. Ya no utilizaré mysql.connector directamente
+# import mysql.connector # <--- 1. Ya no utilizaré mysql.connector directamente
 from decimal import Decimal
 from datetime import date
 from datetime import datetime
@@ -58,7 +58,7 @@ def calculadora():
         usuario = cursor.fetchone()
         username = usuario['username'] if usuario else "Usuario"
 
-    # --- LÓGICA DEL SALUDO DINÁMICO ---
+        # --- LÓGICA DEL SALUDO DINÁMICO ---
         hora_actual = datetime.now().hour
         
         if 5 <= hora_actual < 12:
@@ -71,11 +71,11 @@ def calculadora():
         return render_template("calculadora.html", saludo=saludo, username=username)
 
     except Exception as err:
-        print(f"Error en /calculadora: {err}")
-        return render_template("calculadora.html", saludo="Bienvenido", username="Usuario")
-    finally:
-        if cursor: cursor.close()
-        if con: db_manager.close_connection(con)
+        print(f"Error en /calculadora: {err}")
+        return render_template("calculadora.html", saludo="Bienvenido", username="Usuario")
+    finally:
+        if cursor: cursor.close()
+        if con: db_manager.close_connection(con)
 
 # =========================================================================
 # API PARA LA LÓGICA DE LA APLICACIÓN
@@ -103,7 +103,10 @@ def registrarUsuario():
         cursor.execute(sql, (usuario, password))
         con.commit()
         return make_response(jsonify({"status": "Usuario registrado exitosamente"}), 201)
-    except mysql.connector.Error as err:
+    
+    # --- ¡CORRECCIÓN AQUÍ! ---
+    except Exception as err: # Cambiado de mysql.connector.Error a Exception
+    # --- FIN DE CORRECCIÓN ---
         print(f"Error en /registrarUsuario: {err}")
         if con: con.rollback()
         return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
