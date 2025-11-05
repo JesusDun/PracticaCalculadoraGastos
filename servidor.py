@@ -59,7 +59,6 @@ def calculadora():
         username = usuario['username'] if usuario else "Usuario"
 
     # --- LÓGICA DEL SALUDO DINÁMICO ---
-    try:
         id_usuario_actual = session['idUsuario']
         con = mysql.connector.connect(**db_config)
         cursor = con.cursor(dictionary=True)
@@ -99,7 +98,7 @@ def registrarUsuario():
         usuario = request.form.get("txtUsuario")
         password = request.form.get("txtContrasena")
         
-        con = db_manager.close_connection()
+        con = db_manager.get_connection()
         if not con: raise Exception("No se pudo conectar a la BD")
             
         cursor = con.cursor()
