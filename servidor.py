@@ -2,11 +2,12 @@
 from flask import Flask, render_template, request, jsonify, make_response, session, redirect, url_for
 from flask_cors import CORS
 import pusher
-import mysql.connector
+# import mysql.connector   # <--- 1. Ya no utilizaré mysql.connector directamente
 from decimal import Decimal
 from datetime import date
 from datetime import datetime
 from report_factory import ReportFactory
+from db_manager import db_manager
 
 # --- Configuración de la Aplicación ---
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -23,13 +24,6 @@ pusher_client = pusher.Pusher(
     ssl=True
 )
 
-# --- Configuración de la base de datos ---
-db_config = {
-    "host": "185.232.14.52",
-    "database": "u760464709_23005283_bd",
-    "user": "u760464709_23005283_usr",
-    "password": "rnUxcf3P#a"
-}
 
 def notificar_actualizacion_gastos():
     pusher_client.trigger('canal-gastos', 'evento-actualizacion', {'message': 'actualizar'})
@@ -51,6 +45,19 @@ def calculadora():
     if 'idUsuario' not in session:
         return redirect(url_for('login'))
 
+    con = None
+    cursor = None
+    try:
+        id_usuario_actual = session['idUsuario']
+
+        con = db_manager.get_connection()
+        if not con: raise Exception("No se pudo conectar a la BD")
+            
+        cursor = con.cursor(dictionary=True)
+        cursor.execute("SELECT username FROM usuarios WHERE idUsuario = %s", (id_usuario_actual,))
+        usuario = cursor.fetchone()
+        username = usuario['username'] if usuario else "Usuario"
+
     # --- LÓGICA DEL SALUDO DINÁMICO ---
     try:
         id_usuario_actual = session['idUsuario']
@@ -71,12 +78,12 @@ def calculadora():
 
         return render_template("calculadora.html", saludo=saludo, username=username)
 
-    except mysql.connector.Error as err:
+    except Exception as err:
+        print(f"Error en /calculadora: {err}")
         return render_template("calculadora.html", saludo="Bienvenido", username="Usuario")
     finally:
-        if 'con' in locals() and con.is_connected():
-            cursor.close()
-            con.close()
+        if cursor: cursor.close()
+        if con: db_manager.close_connection(con)
 
 # =========================================================================
 # API PARA LA LÓGICA DE LA APLICACIÓN
@@ -85,57 +92,64 @@ def calculadora():
 # NUEVA RUTA: Para registrar un nuevo usuario
 @app.route("/registrarUsuario", methods=["POST"])
 def registrarUsuario():
+
+    con = None
+    cursor = None
     try:
         usuario = request.form.get("txtUsuario")
         password = request.form.get("txtContrasena")
-        con = mysql.connector.connect(**db_config)
+        
+        con = db_manager.close_connection()
+        if not con: raise Exception("No se pudo conectar a la BD")
+            
         cursor = con.cursor()
-
-        # Primero, verificamos si el usuario ya existe
         cursor.execute("SELECT idUsuario FROM usuarios WHERE username = %s", (usuario,))
         if cursor.fetchone():
             return make_response(jsonify({"error": "El nombre de usuario ya está en uso."}), 409)
 
-        # Si no existe, lo insertamos
         sql = "INSERT INTO usuarios (username, password) VALUES (%s, %s)"
         cursor.execute(sql, (usuario, password))
         con.commit()
         return make_response(jsonify({"status": "Usuario registrado exitosamente"}), 201)
     except mysql.connector.Error as err:
+        print(f"Error en /registrarUsuario: {err}")
+        if con: con.rollback()
         return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
     finally:
-        if 'con' in locals() and con.is_connected():
-            cursor.close()
-            con.close()
+        if cursor: cursor.close()
+        if con: db_manager.close_connection(con)
 
 @app.route("/iniciarSesion", methods=["POST"])
 def iniciarSesion():
+    con = None
+    cursor = None
     try:
         usuario = request.form.get("txtUsuario")
         password = request.form.get("txtContrasena")
-        con = mysql.connector.connect(**db_config)
-        cursor = con.cursor(dictionary=True) # dictionary=True para obtener el ID
+        
+        con = db_manager.get_connection()
+        if not con: raise Exception("No se pudo conectar a la BD")
+            
+        cursor = con.cursor(dictionary=True)
         sql = "SELECT idUsuario, username FROM usuarios WHERE username = %s AND password = %s"
         cursor.execute(sql, (usuario, password))
         user_data = cursor.fetchone()
         
         if user_data:
-            # MODIFICADO: Guardamos el ID del usuario en la sesión
             session['idUsuario'] = user_data['idUsuario']
             return make_response(jsonify({"status": "success"}), 200)
         else:
             return make_response(jsonify({"error": "Usuario o contraseña incorrectos"}), 401)
-    except mysql.connector.Error as err:
+    except Exception as err:
+        print(f"Error en /iniciarSesion: {err}")
         return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
     finally:
-        if 'con' in locals() and con.is_connected():
-            cursor.close()
-            con.close()
+        if cursor: cursor.close()
+        if con: db_manager.close_connection(con)
 
-# NUEVA RUTA: Para cerrar la sesión
 @app.route("/cerrarSesion", methods=["POST"])
 def cerrarSesion():
-    session.clear() # Limpia todos los datos de la sesión
+    session.clear()
     return make_response(jsonify({"status": "Sesión cerrada"}), 200)
 
 # --- TODAS LAS RUTAS DE GASTOS AHORA USAN EL ID DE LA SESIÓN ---
@@ -145,7 +159,9 @@ def get_gastos_usuario(id_usuario_actual):
     con = None
     cursor = None
     try:
-        con = mysql.connector.connect(**db_config)
+        con = db_manager.get_connection()
+        if not con: raise Exception("No se pudo conectar a la BD")
+            
         cursor = con.cursor(dictionary=True)
         sql = "SELECT idGasto AS id, descripcion, monto, categoria, fecha FROM gastos WHERE idUsuario = %s ORDER BY idGasto DESC"
         cursor.execute(sql, (id_usuario_actual,))
@@ -161,22 +177,26 @@ def get_gastos_usuario(id_usuario_actual):
                 'date': gasto['fecha'].strftime('%Y-%m-%d')
             })
         return gastos_limpios
-    except mysql.connector.Error as err:
+    except Exception as err:
         print(f"Error en get_gastos_usuario: {err}")
         return None
     finally:
-        if cursor:
-            cursor.close()
-        if con and con.is_connected():
-            con.close()
+        if cursor: cursor.close()
+        if con: db_manager.close_connection(con)
 # --- FIN DE FUNCIÓN AUXILIAR ---
 
 @app.route("/tbodyGastos")
 def tbodyGastos():
     if 'idUsuario' not in session: return "<tr><td colspan='4'>Acceso no autorizado</td></tr>"
+
+    con = None
+    cursor = None
     try:
         id_usuario_actual = session['idUsuario']
-        con = mysql.connector.connect(**db_config)
+        
+        con = db_manager.get_connection()
+        if not con: raise Exception("No se pudo conectar a la BD")
+            
         cursor = con.cursor(dictionary=True)
         sql = """
             SELECT idGasto AS id, descripcion AS description, monto AS amount, categoria AS category, fecha AS date 
@@ -185,12 +205,12 @@ def tbodyGastos():
         cursor.execute(sql, (id_usuario_actual,))
         gastos_ordenados = cursor.fetchall()
         return render_template("tbodyGastos.html", gastos=gastos_ordenados)
-    except mysql.connector.Error as err:
+    except Exception as err:
+        print(f"Error en /tbodyGastos: {err}")
         return f"<tr><td colspan='4'>Error al cargar datos: {err}</td></tr>"
     finally:
-        if 'con' in locals() and con.is_connected():
-            cursor.close()
-            con.close()
+        if cursor: cursor.close()
+        if con: db_manager.close_connection(con)
 
 @app.route("/gastos/json")
 def gastos_json():
@@ -207,9 +227,15 @@ def gastos_json():
 @app.route("/gasto", methods=["POST"])
 def agregar_gasto():
     if 'idUsuario' not in session: return make_response(jsonify({"error": "Acceso no autorizado"}), 401)
+
+    con = None
+    cursor = None
     try:
         id_usuario_actual = session['idUsuario']
-        con = mysql.connector.connect(**db_config)
+        
+        con = db_manager.get_connection()
+        if not con: raise Exception("No se pudo conectar a la BD")
+            
         cursor = con.cursor()
         sql = "INSERT INTO gastos (descripcion, monto, categoria, fecha, idUsuario) VALUES (%s, %s, %s, %s, %s)"
         val = (
@@ -221,34 +247,40 @@ def agregar_gasto():
         con.commit()
         notificar_actualizacion_gastos()
         return make_response(jsonify({"status": "success"}), 201)
-    except mysql.connector.Error as err:
-        if 'con' in locals() and con.is_connected(): con.rollback()
+    except Exception as err:
+        print(f"Error en /gasto (agregar): {err}")
+        if con: con.rollback()
         return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
     finally:
-        if 'con' in locals() and con.is_connected():
-            cursor.close()
-            con.close()
+        if cursor: cursor.close()
+        if con: db_manager.close_connection(con)
 
 @app.route("/gasto/eliminar", methods=["POST"])
 def eliminar_gasto():
     if 'idUsuario' not in session: return make_response(jsonify({"error": "Acceso no autorizado"}), 401)
+
+    con = None
+    cursor = None
     try:
         id_a_eliminar = int(request.form.get("id"))
         id_usuario_actual = session['idUsuario']
-        con = mysql.connector.connect(**db_config)
+        
+        con = db_manager.get_connection()
+        if not con: raise Exception("No se pudo conectar a la BD")
+            
         cursor = con.cursor()
         sql = "DELETE FROM gastos WHERE idGasto = %s AND idUsuario = %s"
         cursor.execute(sql, (id_a_eliminar, id_usuario_actual))
         con.commit()
         notificar_actualizacion_gastos()
         return make_response(jsonify({"status": "success"}), 200)
-    except mysql.connector.Error as err:
-        if 'con' in locals() and con.is_connected(): con.rollback()
+    except Exception as err:
+        print(f"Error en /gasto (eliminar): {err}")
+        if con: con.rollback()
         return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
     finally:
-        if 'con' in locals() and con.is_connected():
-            cursor.close()
-            con.close()
+        if cursor: cursor.close()
+        if con: db_manager.close_connection(con)
 
 # =========================================================================
 # 4. NUEVA RUTA DE REPORTES (Patrón Factory)
