@@ -29,7 +29,29 @@ app.controller("registroCtrl", function ($scope, $http) {
 
 // --- Controlador para la Calculadora ---
 app.controller("calculadoraCtrl", function ($scope, $http) {
-    // ... (El código de los gráficos y resúmenes no cambia)
+
+    // --- INICIO DE NUEVA LÓGICA DE SALUDO (CLIENT-SIDE) ---
+    function actualizarSaludo() {
+        // new Date() obtiene la hora local del NAVEGADOR
+        const horaActual = new Date().getHours(); 
+        let saludo = "";
+
+        if (5 <= horaActual && horaActual < 12) {
+            saludo = "Buenos Días";
+        } else if (12 <= horaActual && horaActual < 20) {
+            saludo = "Buenas Tardes"; // (12 PM a 7:59 PM)
+        } else {
+            saludo = "Buenas Noches";
+        }
+        
+        // Inserta el texto en el <span> que creamos
+        $("#saludo-texto").text(saludo);
+    }
+    
+    // Ejecuta la función al cargar el controlador
+    actualizarSaludo();
+    // --- FIN DE NUEVA LÓGICA DE SALUDO ---
+    
     let graficoPieInstance;
     let graficoBarrasInstance;
     const categoryColors = { comida: '#FF6B6B', transporte: '#4ECDC4', entretenimiento: '#45B7D1', salud: '#96CEB4', servicios: '#FFEAA7', compras: '#DDA0DD', otros: '#98D8C8' };
