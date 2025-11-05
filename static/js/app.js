@@ -38,7 +38,7 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
         $.get("/gastos/json", function (gastos) { actualizarResumen(gastos); actualizarGraficos(gastos); });
     }
     function actualizarResumen(gastos) {
-        const total = gastos.reduce((sum, g) => sum + g.amount, 0);
+        const total = gastos.reduce((sum, g) => sum + g.monto, 0);
         const count = gastos.length;
         const promedio = count > 0 ? total / count : 0;
         $("#totalGastado").text(`$${total.toFixed(2)}`);
@@ -48,11 +48,11 @@ app.controller("calculadoraCtrl", function ($scope, $http) {
     function actualizarGraficos(gastos) {
         const pieData = { labels: [], values: [], colors: [] };
         const gastosPorCategoria = {};
-        gastos.forEach(gasto => { if (!gastosPorCategoria[gasto.category]) { gastosPorCategoria[gasto.category] = 0; } gastosPorCategoria[gasto.category] += gasto.amount; });
+        gastos.forEach(gasto => { if (!gastosPorCategoria[gasto.categoria]) { gastosPorCategoria[gasto.categoria] = 0; } gastosPorCategoria[gasto.categoria] += gasto.monto; });
         for (const categoria in gastosPorCategoria) { pieData.labels.push(categoria.charAt(0).toUpperCase() + categoria.slice(1)); pieData.values.push(gastosPorCategoria[categoria]); pieData.colors.push(categoryColors[categoria] || '#CCCCCC'); }
         const barData = { labels: [], values: [] };
         const gastosPorDia = {};
-        gastos.forEach(gasto => { if (!gastosPorDia[gasto.date]) { gastosPorDia[gasto.date] = 0; } gastosPorDia[gasto.date] += gasto.amount; });
+        gastos.forEach(gasto => { if (!gastosPorDia[gasto.fecha]) { gastosPorDia[gasto.fecha] = 0; } gastosPorDia[gasto.fecha] += gasto.monto; });
         const sortedDates = Object.keys(gastosPorDia).sort().slice(-7);
         sortedDates.forEach(date => { barData.labels.push(new Date(date + 'T00:00:00').toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })); barData.values.push(gastosPorDia[date]); });
         dibujarGraficoPie(pieData);
