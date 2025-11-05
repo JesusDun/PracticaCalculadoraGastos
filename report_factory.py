@@ -28,11 +28,11 @@ class ReporteCSV(Reporte):
         
         for gasto in self.datos:
             writer.writerow([
-                gasto['id'], 
-                gasto['description'], 
-                gasto['amount'], 
-                gasto['category'], 
-                gasto['date']
+                gasto['ID'], 
+                gasto['Descripcion'], 
+                gasto['Monto'], 
+                gasto['Categoria'], 
+                gasto['Fecha']
             ])
         
         return output.getvalue()
