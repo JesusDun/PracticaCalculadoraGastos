@@ -165,11 +165,11 @@ def get_gastos_usuario(id_usuario_actual):
         gastos_limpios = []
         for gasto in gastos_desde_db:
             gastos_limpios.append({
-                'ID': gasto['id'],
-                'Descripcion': gasto['descripcion'],
-                'Monto': float(gasto['monto']),
-                'Categoria': gasto['categoria'],
-                'Fecha': gasto['fecha'].strftime('%Y-%m-%d')
+                'id': gasto['id'],
+                'descripcion': gasto['descripcion'],
+                'monto': float(gasto['monto']),
+                'categoria': gasto['categoria'],
+                'fecha': gasto['fecha'].strftime('%Y-%m-%d')
             })
         return gastos_limpios
     except Exception as err:
@@ -194,7 +194,7 @@ def tbodyGastos():
             
         cursor = con.cursor(dictionary=True)
         sql = """
-            SELECT idGasto AS id, descripcion AS description, monto AS amount, categoria AS category, fecha AS date 
+            SELECT idGasto AS id, descripcion AS description, monto AS monto, categoria AS categoria, fecha AS fecha 
             FROM gastos WHERE idUsuario = %s ORDER BY idGasto DESC
         """
         cursor.execute(sql, (id_usuario_actual,))
@@ -234,8 +234,8 @@ def agregar_gasto():
         cursor = con.cursor()
         sql = "INSERT INTO gastos (descripcion, monto, categoria, fecha, idUsuario) VALUES (%s, %s, %s, %s, %s)"
         val = (
-            request.form.get("Descripcion"), float(request.form.get("Monto")),
-            request.form.get("Categoria"), request.form.get("Fecha"),
+            request.form.get("descripcion"), float(request.form.get("monto")),
+            request.form.get("categoria"), request.form.get("fecha"),
             id_usuario_actual
         )
         cursor.execute(sql, val)
