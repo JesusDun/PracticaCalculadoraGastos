@@ -6,6 +6,7 @@ import mysql.connector
 from decimal import Decimal
 from datetime import date
 from datetime import datetime
+from report_factory import ReportFactory
 
 # --- Configuración de la Aplicación ---
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -47,7 +48,6 @@ def registro():
 
 @app.route("/calculadora")
 def calculadora():
-    # Protegemos la ruta. Si no hay sesión, se redirige al login.
     if 'idUsuario' not in session:
         return redirect(url_for('login'))
 
@@ -140,6 +140,37 @@ def cerrarSesion():
 
 # --- TODAS LAS RUTAS DE GASTOS AHORA USAN EL ID DE LA SESIÓN ---
 
+# --- Función para Obtener Gastos ---
+def get_gastos_usuario(id_usuario_actual):
+    con = None
+    cursor = None
+    try:
+        con = mysql.connector.connect(**db_config)
+        cursor = con.cursor(dictionary=True)
+        sql = "SELECT idGasto AS id, descripcion, monto, categoria, fecha FROM gastos WHERE idUsuario = %s ORDER BY idGasto DESC"
+        cursor.execute(sql, (id_usuario_actual,))
+        gastos_desde_db = cursor.fetchall()
+        
+        gastos_limpios = []
+        for gasto in gastos_desde_db:
+            gastos_limpios.append({
+                'id': gasto['id'],
+                'description': gasto['descripcion'],
+                'amount': float(gasto['monto']),
+                'category': gasto['categoria'],
+                'date': gasto['fecha'].strftime('%Y-%m-%d')
+            })
+        return gastos_limpios
+    except mysql.connector.Error as err:
+        print(f"Error en get_gastos_usuario: {err}")
+        return None
+    finally:
+        if cursor:
+            cursor.close()
+        if con and con.is_connected():
+            con.close()
+# --- FIN DE FUNCIÓN AUXILIAR ---
+
 @app.route("/tbodyGastos")
 def tbodyGastos():
     if 'idUsuario' not in session: return "<tr><td colspan='4'>Acceso no autorizado</td></tr>"
@@ -164,30 +195,14 @@ def tbodyGastos():
 @app.route("/gastos/json")
 def gastos_json():
     if 'idUsuario' not in session: return make_response(jsonify({"error": "Acceso no autorizado"}), 401)
-    try:
-        id_usuario_actual = session['idUsuario']
-        con = mysql.connector.connect(**db_config)
-        cursor = con.cursor(dictionary=True)
-        sql = "SELECT idGasto AS id, descripcion, monto, categoria, fecha FROM gastos WHERE idUsuario = %s ORDER BY idGasto DESC"
-        cursor.execute(sql, (id_usuario_actual,))
-        gastos_desde_db = cursor.fetchall()
-        
-        gastos_limpios = []
-        for gasto in gastos_desde_db:
-            gastos_limpios.append({
-                'id': gasto['id'],
-                'description': gasto['descripcion'],
-                'amount': float(gasto['monto']),
-                'category': gasto['categoria'],
-                'date': gasto['fecha'].strftime('%Y-%m-%d')
-            })
-        return jsonify(gastos_limpios)
-    except mysql.connector.Error as err:
-        return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
-    finally:
-        if 'con' in locals() and con.is_connected():
-            cursor.close()
-            con.close()
+
+    id_usuario_actual = session['idUsuario']
+    gastos_limpios = get_gastos_usuario(id_usuario_actual)
+    
+    if gastos_limpios is None:
+         return make_response(jsonify({"error": "Error al obtener gastos de la BD"}), 500)
+    
+    return jsonify(gastos_limpios)
 
 @app.route("/gasto", methods=["POST"])
 def agregar_gasto():
@@ -222,7 +237,6 @@ def eliminar_gasto():
         id_usuario_actual = session['idUsuario']
         con = mysql.connector.connect(**db_config)
         cursor = con.cursor()
-        # MODIFICADO: Solo se puede borrar un gasto si pertenece al usuario actual.
         sql = "DELETE FROM gastos WHERE idGasto = %s AND idUsuario = %s"
         cursor.execute(sql, (id_a_eliminar, id_usuario_actual))
         con.commit()
@@ -235,6 +249,39 @@ def eliminar_gasto():
         if 'con' in locals() and con.is_connected():
             cursor.close()
             con.close()
+
+# =========================================================================
+# 4. NUEVA RUTA DE REPORTES (Patrón Factory)
+# =========================================================================
+@app.route("/exportar/<tipo>")
+def exportar_gastos(tipo):
+    if 'idUsuario' not in session:
+        return make_response(jsonify({"error": "Acceso no autorizado"}), 401)
+
+    try:
+        id_usuario_actual = session['idUsuario']
+        
+        gastos = get_gastos_usuario(id_usuario_actual)
+        
+        if gastos is None:
+            return make_response(jsonify({"error": "No se pudieron obtener los datos para exportar"}), 500)
+        
+        factory = ReportFactory()
+        reporte = factory.crear_reporte(tipo, gastos)
+        
+        contenido = reporte.generar_reporte()
+        
+        response = make_response(contenido)
+        response.headers['Content-Disposition'] = f'attachment; filename={reporte.get_filename()}'
+        response.headers['Content-Type'] = reporte.get_mimetype()
+        
+        return response
+
+    except ValueError as ve:
+        return make_response(jsonify({"error": str(ve)}), 400)
+    except Exception as e:
+        return make_response(jsonify({"error": f"Error interno del servidor: {e}"}), 500)
+# --- FIN DE NUEVA RUTA ---
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
