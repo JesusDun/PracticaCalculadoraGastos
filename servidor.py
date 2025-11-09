@@ -4,7 +4,7 @@ import pusher
 from decimal import Decimal
 from datetime import date
 from datetime import datetime
-from report_factory import ReportFactory
+from report_factory import ReportFactory, ReporteConEncabezado
 from gastos_facade import gastos_facade
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -168,24 +168,28 @@ def exportar_gastos(tipo):
         id_usuario_actual = session['idUsuario']
         
         gastos = gastos_facade.get_gastos_for_json(id_usuario_actual)
-        
         if gastos is None:
             return make_response(jsonify({"error": "No se pudieron obtener los datos"}), 500)
         
+        username = gastos_facade.get_username_by_id(id_usuario_actual)
+
         factory = ReportFactory()
-        reporte = factory.crear_reporte(tipo, gastos)
+        reporte_base = factory.crear_reporte(tipo, gastos)
         
-        contenido = reporte.generar_reporte()
+        reporte_decorado = ReporteConEncabezado(reporte_base, username)
+        
+        contenido = reporte_decorado.generar_reporte()
         
         response = make_response(contenido)
-        response.headers['Content-Disposition'] = f'attachment; filename={reporte.get_filename()}'
-        response.headers['Content-Type'] = reporte.get_mimetype()
+        response.headers['Content-Disposition'] = f'attachment; filename={reporte_decorado.get_filename()}'
+        response.headers['Content-Type'] = reporte_decorado.get_mimetype()
         
         return response
 
     except ValueError as ve:
         return make_response(jsonify({"error": str(ve)}), 400)
     except Exception as e:
+        print(f"Error en /exportar: {e}")
         return make_response(jsonify({"error": f"Error interno del servidor: {e}"}), 500)
 
 if __name__ == "__main__":
