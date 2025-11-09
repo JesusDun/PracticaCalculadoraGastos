@@ -1,21 +1,16 @@
-# Archivo: servidor.py
 from flask import Flask, render_template, request, jsonify, make_response, session, redirect, url_for
 from flask_cors import CORS
 import pusher
-# import mysql.connector # <--- 1. Ya no utilizaré mysql.connector directamente
 from decimal import Decimal
 from datetime import date
 from datetime import datetime
 from report_factory import ReportFactory
-from db_manager import db_manager
+from gastos_facade import gastos_facade
 
-# --- Configuración de la Aplicación ---
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
-# NUEVO: Se necesita una "llave secreta" para manejar las sesiones de forma segura.
 app.secret_key = 'tu_llave_secreta_aqui_puede_ser_cualquier_texto'
 
-# --- Configuración de Pusher ---
 pusher_client = pusher.Pusher(
     app_id='2050408',
     key='b338714caa5dd2af623d',
@@ -24,13 +19,8 @@ pusher_client = pusher.Pusher(
     ssl=True
 )
 
-
 def notificar_actualizacion_gastos():
     pusher_client.trigger('canal-gastos', 'evento-actualizacion', {'message': 'actualizar'})
-
-# =========================================================================
-# RUTAS PARA SERVIR LAS PÁGINAS HTML
-# =========================================================================
 
 @app.route("/")
 def login():
@@ -45,80 +35,47 @@ def calculadora():
     if 'idUsuario' not in session:
         return redirect(url_for('login'))
 
-    con = None
-    cursor = None
     try:
         id_usuario_actual = session['idUsuario']
+        
+        username = gastos_facade.get_username_by_id(id_usuario_actual)
+        
+        hora_actual = datetime.now().hour
+        if 5 <= hora_actual < 12: saludo = "Buenos Días"
+        elif 12 <= hora_actual < 20: saludo = "Buenas Tardes"
+        else: saludo = "Buenas Noches"
 
-        con = db_manager.get_connection()
-        if not con: raise Exception("No se pudo conectar a la BD")
-            
-        cursor = con.cursor(dictionary=True)
-        cursor.execute("SELECT username FROM usuarios WHERE idUsuario = %s", (id_usuario_actual,))
-        usuario = cursor.fetchone()
-        username = usuario['username'] if usuario else "Usuario"
-
-        return render_template("calculadora.html", username=username)
+        return render_template("calculadora.html", saludo=saludo, username=username)
 
     except Exception as err:
         print(f"Error en /calculadora: {err}")
         return render_template("calculadora.html", saludo="Bienvenido", username="Usuario")
-    finally:
-        if cursor: cursor.close()
-        if con: db_manager.close_connection(con)
 
-# =========================================================================
-# API PARA LA LÓGICA DE LA APLICACIÓN
-# =========================================================================
-
-# NUEVA RUTA: Para registrar un nuevo usuario
 @app.route("/registrarUsuario", methods=["POST"])
 def registrarUsuario():
-
-    con = None
-    cursor = None
     try:
         usuario = request.form.get("txtUsuario")
         password = request.form.get("txtContrasena")
         
-        con = db_manager.get_connection()
-        if not con: raise Exception("No se pudo conectar a la BD")
-            
-        cursor = con.cursor()
-        cursor.execute("SELECT idUsuario FROM usuarios WHERE username = %s", (usuario,))
-        if cursor.fetchone():
+        if gastos_facade.find_user_by_username(usuario):
             return make_response(jsonify({"error": "El nombre de usuario ya está en uso."}), 409)
 
-        sql = "INSERT INTO usuarios (username, password) VALUES (%s, %s)"
-        cursor.execute(sql, (usuario, password))
-        con.commit()
-        return make_response(jsonify({"status": "Usuario registrado exitosamente"}), 201)
-    
-    # --- ¡CORRECCIÓN AQUÍ! ---
-    except Exception as err: # Cambiado de mysql.connector.Error a Exception
-    # --- FIN DE CORRECCIÓN ---
+        if gastos_facade.create_user(usuario, password):
+            return make_response(jsonify({"status": "Usuario registrado exitosamente"}), 201)
+        else:
+            raise Exception("Error al crear usuario")
+            
+    except Exception as err:
         print(f"Error en /registrarUsuario: {err}")
-        if con: con.rollback()
         return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
-    finally:
-        if cursor: cursor.close()
-        if con: db_manager.close_connection(con)
 
 @app.route("/iniciarSesion", methods=["POST"])
 def iniciarSesion():
-    con = None
-    cursor = None
     try:
         usuario = request.form.get("txtUsuario")
         password = request.form.get("txtContrasena")
         
-        con = db_manager.get_connection()
-        if not con: raise Exception("No se pudo conectar a la BD")
-            
-        cursor = con.cursor(dictionary=True)
-        sql = "SELECT idUsuario, username FROM usuarios WHERE username = %s AND password = %s"
-        cursor.execute(sql, (usuario, password))
-        user_data = cursor.fetchone()
+        user_data = gastos_facade.find_user_by_credentials(usuario, password)
         
         if user_data:
             session['idUsuario'] = user_data['idUsuario']
@@ -128,81 +85,31 @@ def iniciarSesion():
     except Exception as err:
         print(f"Error en /iniciarSesion: {err}")
         return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
-    finally:
-        if cursor: cursor.close()
-        if con: db_manager.close_connection(con)
 
 @app.route("/cerrarSesion", methods=["POST"])
 def cerrarSesion():
     session.clear()
     return make_response(jsonify({"status": "Sesión cerrada"}), 200)
 
-# --- TODAS LAS RUTAS DE GASTOS AHORA USAN EL ID DE LA SESIÓN ---
-
-# --- Función para Obtener Gastos ---
-def get_gastos_usuario(id_usuario_actual):
-    con = None
-    cursor = None
-    try:
-        con = db_manager.get_connection()
-        if not con: raise Exception("No se pudo conectar a la BD")
-            
-        cursor = con.cursor(dictionary=True)
-        sql = "SELECT idGasto AS id, descripcion, monto, categoria, fecha FROM gastos WHERE idUsuario = %s ORDER BY idGasto DESC"
-        cursor.execute(sql, (id_usuario_actual,))
-        gastos_desde_db = cursor.fetchall()
-        
-        gastos_limpios = []
-        for gasto in gastos_desde_db:
-            gastos_limpios.append({
-                'id': gasto['id'],
-                'descripcion': gasto['descripcion'],
-                'monto': float(gasto['monto']),
-                'categoria': gasto['categoria'],
-                'fecha': gasto['fecha'].strftime('%Y-%m-%d')
-            })
-        return gastos_limpios
-    except Exception as err:
-        print(f"Error en get_gastos_usuario: {err}")
-        return None
-    finally:
-        if cursor: cursor.close()
-        if con: db_manager.close_connection(con)
-# --- FIN DE FUNCIÓN AUXILIAR ---
-
 @app.route("/tbodyGastos")
 def tbodyGastos():
     if 'idUsuario' not in session: return "<tr><td colspan='4'>Acceso no autorizado</td></tr>"
-
-    con = None
-    cursor = None
     try:
         id_usuario_actual = session['idUsuario']
         
-        con = db_manager.get_connection()
-        if not con: raise Exception("No se pudo conectar a la BD")
-            
-        cursor = con.cursor(dictionary=True)
-        sql = """
-            SELECT idGasto AS id, descripcion AS descripcion, monto AS monto, categoria AS categoria, fecha AS fecha 
-            FROM gastos WHERE idUsuario = %s ORDER BY idGasto DESC
-        """
-        cursor.execute(sql, (id_usuario_actual,))
-        gastos_ordenados = cursor.fetchall()
+        gastos_ordenados = gastos_facade.get_gastos_for_tbody(id_usuario_actual)
+        
         return render_template("tbodyGastos.html", gastos=gastos_ordenados)
     except Exception as err:
         print(f"Error en /tbodyGastos: {err}")
         return f"<tr><td colspan='4'>Error al cargar datos: {err}</td></tr>"
-    finally:
-        if cursor: cursor.close()
-        if con: db_manager.close_connection(con)
 
 @app.route("/gastos/json")
 def gastos_json():
     if 'idUsuario' not in session: return make_response(jsonify({"error": "Acceso no autorizado"}), 401)
-
+    
     id_usuario_actual = session['idUsuario']
-    gastos_limpios = get_gastos_usuario(id_usuario_actual)
+    gastos_limpios = gastos_facade.get_gastos_for_json(id_usuario_actual)
     
     if gastos_limpios is None:
          return make_response(jsonify({"error": "Error al obtener gastos de la BD"}), 500)
@@ -212,64 +119,46 @@ def gastos_json():
 @app.route("/gasto", methods=["POST"])
 def agregar_gasto():
     if 'idUsuario' not in session: return make_response(jsonify({"error": "Acceso no autorizado"}), 401)
-
-    con = None
-    cursor = None
     try:
         id_usuario_actual = session['idUsuario']
         
-        con = db_manager.get_connection()
-        if not con: raise Exception("No se pudo conectar a la BD")
-            
-        cursor = con.cursor()
-        sql = "INSERT INTO gastos (descripcion, monto, categoria, fecha, idUsuario) VALUES (%s, %s, %s, %s, %s)"
-        val = (
-            request.form.get("descripcion"), float(request.form.get("monto")),
-            request.form.get("categoria"), request.form.get("fecha"),
-            id_usuario_actual
+        success = gastos_facade.add_gasto(
+            user_id=id_usuario_actual,
+            descripcion=request.form.get("descripcion"),
+            monto=float(request.form.get("monto")),
+            categoria=request.form.get("categoria"),
+            fecha=request.form.get("fecha")
         )
-        cursor.execute(sql, val)
-        con.commit()
-        notificar_actualizacion_gastos()
-        return make_response(jsonify({"status": "success"}), 201)
+        
+        if success:
+            notificar_actualizacion_gastos()
+            return make_response(jsonify({"status": "success"}), 201)
+        else:
+            raise Exception("Error al agregar gasto")
+            
     except Exception as err:
         print(f"Error en /gasto (agregar): {err}")
-        if con: con.rollback()
         return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
-    finally:
-        if cursor: cursor.close()
-        if con: db_manager.close_connection(con)
 
 @app.route("/gasto/eliminar", methods=["POST"])
 def eliminar_gasto():
     if 'idUsuario' not in session: return make_response(jsonify({"error": "Acceso no autorizado"}), 401)
-
-    con = None
-    cursor = None
     try:
         id_a_eliminar = int(request.form.get("id"))
         id_usuario_actual = session['idUsuario']
         
-        con = db_manager.get_connection()
-        if not con: raise Exception("No se pudo conectar a la BD")
+        success = gastos_facade.delete_gasto(id_a_eliminar, id_usuario_actual)
+
+        if success:
+            notificar_actualizacion_gastos()
+            return make_response(jsonify({"status": "success"}), 200)
+        else:
+            raise Exception("Error al eliminar gasto")
             
-        cursor = con.cursor()
-        sql = "DELETE FROM gastos WHERE idGasto = %s AND idUsuario = %s"
-        cursor.execute(sql, (id_a_eliminar, id_usuario_actual))
-        con.commit()
-        notificar_actualizacion_gastos()
-        return make_response(jsonify({"status": "success"}), 200)
     except Exception as err:
         print(f"Error en /gasto (eliminar): {err}")
-        if con: con.rollback()
         return make_response(jsonify({"error": f"Error de base de datos: {err}"}), 500)
-    finally:
-        if cursor: cursor.close()
-        if con: db_manager.close_connection(con)
 
-# =========================================================================
-# 4. NUEVA RUTA DE REPORTES (Patrón Factory)
-# =========================================================================
 @app.route("/exportar/<tipo>")
 def exportar_gastos(tipo):
     if 'idUsuario' not in session:
@@ -278,10 +167,10 @@ def exportar_gastos(tipo):
     try:
         id_usuario_actual = session['idUsuario']
         
-        gastos = get_gastos_usuario(id_usuario_actual)
+        gastos = gastos_facade.get_gastos_for_json(id_usuario_actual)
         
         if gastos is None:
-            return make_response(jsonify({"error": "No se pudieron obtener los datos para exportar"}), 500)
+            return make_response(jsonify({"error": "No se pudieron obtener los datos"}), 500)
         
         factory = ReportFactory()
         reporte = factory.crear_reporte(tipo, gastos)
@@ -298,7 +187,6 @@ def exportar_gastos(tipo):
         return make_response(jsonify({"error": str(ve)}), 400)
     except Exception as e:
         return make_response(jsonify({"error": f"Error interno del servidor: {e}"}), 500)
-# --- FIN DE NUEVA RUTA ---
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
