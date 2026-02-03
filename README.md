@@ -5,7 +5,7 @@ Página: https://practicacalculadoragastos.onrender.com/
 
 Pagina de la DB:       https://awos2024.free.nf/dbm/?server=185.232.14.52 (NO FUNCIONA)
 
-Página de la DB (2.0): https://awos2024.free.nf/dbm/?server=46.28.42.226
+Página de la DB (2.0): https://dfhash.com/dbm/?server=46.28.42.226
 
 
 Credenciales ..
