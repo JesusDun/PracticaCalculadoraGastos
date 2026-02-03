@@ -2,7 +2,7 @@ import mysql.connector
 import threading
 
 db_config = {
-    "host": "185.232.14.52",
+    "host": "46.28.42.226",
     "database": "u760464709_23005283_bd",
     "user": "u760464709_23005283_usr",
     "password": "rnUxcf3P#a",
