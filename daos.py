@@ -63,3 +63,28 @@ class GastoDAO(BaseDAO):
     def delete(self, gasto_id, user_id):
         sql = "DELETE FROM gastos WHERE idGasto = %s AND idUsuario = %s"
         return self._execute(sql, (gasto_id, user_id))
+
+class LogDAO:
+    def __init__(self, db_manager):
+        self.db = db_manager
+        self.create_table()
+
+    def create_table(self):
+        query = """
+        CREATE TABLE IF NOT EXISTS bitacora_eventos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario TEXT,
+            accion TEXT,
+            nivel TEXT,
+            fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+        self.db.execute_query(query)
+
+    def registrar_evento(self, usuario, accion, nivel):
+        query = "INSERT INTO bitacora_eventos (usuario, accion, nivel) VALUES (?, ?, ?)"
+        self.db.execute_query(query, (usuario, accion, nivel))
+
+    def obtener_logs(self):
+        query = "SELECT usuario, accion, nivel, fecha FROM bitacora_eventos ORDER BY fecha DESC"
+        return self.db.fetch_all(query)
