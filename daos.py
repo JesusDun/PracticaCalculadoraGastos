@@ -8,15 +8,15 @@ class BaseDAO:
             con = db_manager.get_connection()
             if not con:
                 raise Exception("No se pudo obtener conexión del pool")
-
+            
             cursor = con.cursor(dictionary=dictionary)
             cursor.execute(query, params or ())
-
+            
             if fetch_one:
                 return cursor.fetchone()
             if fetch_all:
                 return cursor.fetchall()
-
+            
             con.commit()
             return True
         except Exception as err:
@@ -28,7 +28,7 @@ class BaseDAO:
             if con: db_manager.close_connection(con)
 
 class UsuarioDAO(BaseDAO):
-
+    
     def get_by_credentials(self, username, password):
         sql = "SELECT idUsuario, username FROM usuarios WHERE username = %s AND password = %s"
         return self._execute(sql, (username, password), fetch_one=True, dictionary=True)
