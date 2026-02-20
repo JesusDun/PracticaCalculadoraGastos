@@ -69,7 +69,7 @@ def calculadora():
 
 @app.route("/registrarUsuario", methods=["POST"])
 def registrarUsuario():
-    usuario_intento = request.form.get('username', 'Desconocido')
+    usuario_intento = request.form.get('txtUsuario', 'Desconocido')
     response, code = app_mediator.registrar_usuario(request.form)
     
     if code in [200, 201]:
@@ -81,7 +81,7 @@ def registrarUsuario():
 
 @app.route("/iniciarSesion", methods=["POST"])
 def iniciarSesion():
-    usuario_intento = request.form.get('username', 'Desconocido')
+    usuario_intento = request.form.get('txtUsuario', 'Desconocido')
     response, code = app_mediator.iniciar_sesion(request.form)
     
     if code == 200:
