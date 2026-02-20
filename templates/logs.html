@@ -1,1 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Monitoreo de Eventos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+    <style>
+        .container { width: 80%; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .log-box { background: #222; color: #0f0; padding: 15px; height: 300px; overflow-y: scroll; font-family: monospace; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Registros de Auditoría (Base de Datos)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Acción</th>
+                    <th>Nivel de Afectación</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs_db %}
+                <tr>
+                    <td>{{ log['fecha'] }}</td>
+                    <td>{{ log['usuario'] }}</td>
+                    <td>{{ log['accion'] }}</td>
+                    <td>{{ log['nivel'] }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4">No hay registros aún.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
+        <h2>Archivo Log Físico (registro_eventos.log)</h2>
+        <div class="log-box">
+            {% for linea in logs_archivo %}
+                {{ linea }}<br>
+            {% else %}
+                El archivo log aún no ha sido creado o está vacío.<br>
+            {% endfor %}
+        </div>
+        <br>
+        <a href="/calculadora" style="padding: 10px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">Volver a la Calculadora</a>
+    </div>
+</body>
+</html>
