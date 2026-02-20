@@ -12,15 +12,15 @@ class DatabaseManager:
             raise Exception("Esta clase es un Singleton. Usa el método get_instance().")
         else:
             try:
-                # Creación explícita del pool para evitar errores de mapping
-                self.connection_pool = mysql.connector.pooling.MySQLConnectionPool(
-                    pool_name="mypool",
-                    pool_size=5,
-                    host="46.28.42.226",
-                    database="u760464709_23005283_bd",
-                    user="u760464709_23005283_usr",
-                    password="rnUxcf3P#a"
-                )
+                db_config = {
+                    "host": "46.28.42.226",
+                    "database": "u760464709_23005283_bd",
+                    "user": "u760464709_23005283_usr",
+                    "password": "rnUxcf3P#a",
+                    "pool_name": "mypool",
+                    "pool_size": 5
+                }
+                self.connection_pool = mysql.connector.pooling.MySQLConnectionPool(**db_config)
                 print("Pool de conexiones de BD (Singleton) creado exitosamente.")
             except mysql.connector.Error as err:
                 print(f"Error al crear el pool de conexiones: {err}")
