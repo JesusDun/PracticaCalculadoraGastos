@@ -21,7 +21,7 @@ def calculadora():
         return redirect(url_for('login'))
     try:
         username = app_mediator.get_username(session['idUsuario'])
-
+        
         hora_actual = datetime.now().hour
         if 5 <= hora_actual < 12: saludo = "Buenos Días"
         elif 12 <= hora_actual < 20: saludo = "Buenas Tardes"
@@ -42,7 +42,7 @@ def iniciarSesion():
     response, code = app_mediator.iniciar_sesion(request.form)
     if code == 200:
         session['idUsuario'] = response["user_id"]
-        return make_response(jsonify(response), code)
+    return make_response(jsonify(response), code)
 
 @app.route("/cerrarSesion", methods=["POST"])
 def cerrarSesion():
@@ -51,7 +51,7 @@ def cerrarSesion():
 
 @app.route("/tbodyGastos")
 def tbodyGastos():
-    if 'idUsuario' not in session:
+    if 'idUsuario' not in session: 
         return "<tr><td colspan='4'>Acceso no autorizado</td></tr>"
     try:
         gastos = app_mediator.get_tbody_gastos(session['idUsuario'])
@@ -64,7 +64,7 @@ def tbodyGastos():
 def gastos_json():
     if 'idUsuario' not in session: 
         return make_response(jsonify({"error": "Acceso no autorizado"}), 401)
-
+    
     gastos = app_mediator.get_json_gastos(session['idUsuario'])
     if gastos is None:
          return make_response(jsonify({"error": "Error al obtener gastos"}), 500)
@@ -72,15 +72,15 @@ def gastos_json():
 
 @app.route("/gasto", methods=["POST"])
 def agregar_gasto():
-    if 'idUsuario' not in session:
+    if 'idUsuario' not in session: 
         return make_response(jsonify({"error": "Acceso no autorizado"}), 401)
-
+    
     response, code = app_mediator.agregar_gasto(session['idUsuario'], request.form)
     return make_response(jsonify(response), code)
 
 @app.route("/gasto/eliminar", methods=["POST"])
 def eliminar_gasto():
-    if 'idUsuario' not in session:
+    if 'idUsuario' not in session: 
         return make_response(jsonify({"error": "Acceso no autorizado"}), 401)
 
     response, code = app_mediator.eliminar_gasto(session['idUsuario'], request.form)
@@ -93,18 +93,18 @@ def exportar_gastos(tipo):
 
     try:
         reporte_decorado = app_mediator.generar_reporte(session['idUsuario'], tipo)
-
+        
         if isinstance(reporte_decorado, dict):
             return make_response(jsonify(reporte_decorado), 500)
 
         contenido = reporte_decorado.generar_reporte()
-
+        
         response = make_response(contenido)
         response.headers['Content-Disposition'] = f'attachment; filename={reporte_decorado.get_filename()}'
         response.headers['Content-Type'] = reporte_decorado.get_mimetype()
-
-        return response
         
+        return response
+
     except ValueError as ve:
         return make_response(jsonify({"error": str(ve)}), 400)
     except Exception as e:
