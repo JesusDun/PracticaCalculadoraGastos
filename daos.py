@@ -64,27 +64,24 @@ class GastoDAO(BaseDAO):
         sql = "DELETE FROM gastos WHERE idGasto = %s AND idUsuario = %s"
         return self._execute(sql, (gasto_id, user_id))
 
-class LogDAO:
-    def __init__(self, db_manager):
-        self.db = db_manager
-        self.create_table()
-
+# --- NUEVA CLASE AÑADIDA PARA AUDITORÍA DE EVENTOS ---
+class LogDAO(BaseDAO):
     def create_table(self):
-        query = """
+        sql = """
         CREATE TABLE IF NOT EXISTS bitacora_eventos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario TEXT,
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            usuario VARCHAR(255),
             accion TEXT,
-            nivel TEXT,
-            fecha DATETIME DEFAULT CURRENT_TIMESTAMP
+            nivel VARCHAR(50),
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """
-        self.db.execute_query(query)
+        return self._execute(sql)
 
     def registrar_evento(self, usuario, accion, nivel):
-        query = "INSERT INTO bitacora_eventos (usuario, accion, nivel) VALUES (?, ?, ?)"
-        self.db.execute_query(query, (usuario, accion, nivel))
+        sql = "INSERT INTO bitacora_eventos (usuario, accion, nivel) VALUES (%s, %s, %s)"
+        return self._execute(sql, (usuario, accion, nivel))
 
     def obtener_logs(self):
-        query = "SELECT usuario, accion, nivel, fecha FROM bitacora_eventos ORDER BY fecha DESC"
-        return self.db.fetch_all(query)
+        sql = "SELECT usuario, accion, nivel, fecha FROM bitacora_eventos ORDER BY fecha DESC"
+        return self._execute(sql, fetch_all=True, dictionary=True)
