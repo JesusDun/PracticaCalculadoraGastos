@@ -17,12 +17,11 @@ RUTA_LOG = os.path.join(RUTA_BASE, 'registro_eventos.log')
 # --- MI HORA LOCAL ---
 ZONA_LOCAL = timezone(timedelta(hours=-6))
 
-logging.Formatter.converter = lambda *args: datetime.now(ZONA_LOCAL).timetuple()
-
+# Quitamos el hack del formatter y configuramos el archivo para que guarde solo el mensaje
 logging.basicConfig(
     filename=RUTA_LOG,
     level=logging.DEBUG, 
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format='%(message)s' 
 )
 
 log_dao = LogDAO()
@@ -34,13 +33,18 @@ with app.app_context():
         print(f"Advertencia al crear tabla de logs: {e}")
 
 def registrar_auditoria(usuario, accion, nivel):
+    # Obtenemos la fecha local exacta
     fecha_local = datetime.now(ZONA_LOCAL).strftime('%Y-%m-%d %H:%M:%S')
+    
+    # 1. Guardar en Base de Datos con la fecha local
     try:
         log_dao.registrar_evento(usuario, accion, nivel, fecha_local)
     except Exception as e:
         print(f"Error guardando log en BD: {e}")
         
-    mensaje = f"Usuario: {usuario} | Acción: {accion} | Nivel: {nivel}"
+    # 2. Guardar en Archivo Log Físico pegando la fecha local directamente en el texto
+    mensaje = f"{fecha_local} - {nivel.upper()} - Usuario: {usuario} | Acción: {accion}"
+    
     if nivel == 'Ataque':
         logging.warning(mensaje)
     elif nivel == 'Aviso':
@@ -64,7 +68,7 @@ def calculadora():
         return redirect(url_for('login'))
     try:
         username = app_mediator.get_username(session['idUsuario'])
-        hora_actual = datetime.now().hour
+        hora_actual = datetime.now(ZONA_LOCAL).hour
         if 5 <= hora_actual < 12: saludo = "Buenos Días"
         elif 12 <= hora_actual < 20: saludo = "Buenas Tardes"
         else: saludo = "Buenas Noches"
