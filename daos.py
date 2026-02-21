@@ -77,10 +77,10 @@ class LogDAO(BaseDAO):
         """
         return self._execute(sql)
 
-    def registrar_evento(self, usuario, accion, nivel):
-        sql = "INSERT INTO bitacora_eventos (usuario, accion, nivel) VALUES (%s, %s, %s)"
-        return self._execute(sql, (usuario, accion, nivel))
+    def registrar_evento(self, usuario, accion, nivel, fecha_local):
+        sql = "INSERT INTO bitacora_eventos (usuario, accion, nivel, fecha) VALUES (%s, %s, %s, %s)"
+        return self._execute(sql, (usuario, accion, nivel, fecha_local))
 
     def obtener_logs(self):
-        sql = "SELECT usuario, accion, nivel, fecha FROM bitacora_eventos ORDER BY fecha DESC"
+        sql = "SELECT usuario, accion, nivel, fecha FROM bitacora_eventos ORDER BY fecha DESC LIMIT 5"
         return self._execute(sql, fetch_all=True, dictionary=True)
