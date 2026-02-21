@@ -10,12 +10,15 @@
 <body ng-controller="calculadoraCtrl" class="bg-light">
     <div class="container-fluid p-4">
         
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
             <div>
                 <h1 class="mb-0"><span id="saludo-texto"></span>, {{ username }}! 👋</h1>
                 <p class="text-muted mb-0">Bienvenido a tu Calculadora de Gastos Personales</p>
             </div>
-            <button id="btnCerrarSesion" class="btn btn-outline-danger">Cerrar Sesión</button>
+            <div class="d-flex gap-2">
+                <a href="/monitoreo_logs" class="btn btn-warning shadow-sm fw-bold">🛡️ Monitoreo de Logs</a>
+                <button id="btnCerrarSesion" class="btn btn-danger shadow-sm">Cerrar Sesión</button>
+            </div>
         </div>
 
         <div class="row mb-4">
