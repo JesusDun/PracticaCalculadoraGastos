@@ -2,7 +2,7 @@ import os
 import logging
 from flask import Flask, render_template, request, jsonify, make_response, session, redirect, url_for
 from flask_cors import CORS
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from app_mediator import app_mediator
 from daos import LogDAO 
 
@@ -13,6 +13,11 @@ app.secret_key = 'tu_llave_secreta_aqui_puede_ser_cualquier_texto'
 # --- CONFIGURACIÓN SEGURA DE AUDITORÍA Y MONITOREO ---
 RUTA_BASE = os.path.dirname(os.path.abspath(__file__))
 RUTA_LOG = os.path.join(RUTA_BASE, 'registro_eventos.log')
+
+# --- MI HORA LOCAL ---
+ZONA_LOCAL = timezone(timedelta(hours=-6))
+
+logging.Formatter.converter = lambda *args: datetime.now(ZONA_LOCAL).timetuple()
 
 logging.basicConfig(
     filename=RUTA_LOG,
@@ -29,8 +34,9 @@ with app.app_context():
         print(f"Advertencia al crear tabla de logs: {e}")
 
 def registrar_auditoria(usuario, accion, nivel):
+    fecha_local = datetime.now(ZONA_LOCAL).strftime('%Y-%m-%d %H:%M:%S')
     try:
-        log_dao.registrar_evento(usuario, accion, nivel)
+        log_dao.registrar_evento(usuario, accion, nivel, fecha_local)
     except Exception as e:
         print(f"Error guardando log en BD: {e}")
         
@@ -176,7 +182,8 @@ def monitoreo_logs():
     
     try:
         with open(RUTA_LOG, 'r') as f:
-            logs_archivo = f.readlines()
+            lineas = f.readlines()
+            logs_archivo = list(reversed(lineas[-5:]))
     except FileNotFoundError:
         logs_archivo = []
 
