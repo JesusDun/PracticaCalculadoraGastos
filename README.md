@@ -50,7 +50,7 @@ El desarrollo se gestionó utilizando control de versiones con Git y GitHub bajo
 3.  **Revisión y Conflictos:** Antes de aprobar un Pull Request, otro integrante del equipo revisó el código. Durante la fusión, se resolvieron conflictos de integración para asegurar que los cambios de diseño y backend funcionaran correctamente juntos.
 4.  **Historial:** Se mantuvo un historial limpio utilizando mensajes de *commits* claros y descriptivos sobre la acción realizada en cada actualización.
 
----
+----
 **Información Técnica (Credenciales de Base de Datos)**
 * Página de la DB (2.0): https://dfhash.com/dbm/?server=46.28.42.226
 * Servidor (2.0): 46.28.42.226
