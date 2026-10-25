@@ -1,0 +1,41 @@
+name: CI Pipeline - Calculadora de Gastos
+
+# El pipeline se ejecutará cada vez que se haga push o un pull request a la rama main
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest # Entorno virtual donde se ejecutará
+
+    steps:
+    # 1. Checkout del código
+    - name: Descargar el código del repositorio
+      uses: actions/checkout@v3
+
+    # 2. Configurar Python
+    - name: Configurar entorno Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    # 3. Compilación (Build) e instalación de dependencias
+    - name: Instalar dependencias (Build)
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest flake8
+
+    # 4. Análisis de sintaxis
+    - name: Revisar código (Linting)
+      run: |
+        # Detiene el build si hay errores graves de sintaxis
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    # 5. Pruebas Automáticas
+    - name: Ejecutar Pruebas con pytest
+      run: |
+        pytest
